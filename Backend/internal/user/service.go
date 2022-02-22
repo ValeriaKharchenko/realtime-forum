@@ -77,7 +77,7 @@ func (s *Service) NewSession(str, pwd string) (string, error) {
 }
 
 func (s *Service) findByCredential(str string) (User, error) {
-	query := fmt.Sprintf("SELECT %s FROM users WHERE login=$1 OR email=$1", userCol)
+	query := fmt.Sprintf("SELECT %s FROM users WHERE login=$1 OR email=$1 OR id=$1", userCol)
 	row := s.db.QueryRow(query, str)
 
 	var u User
@@ -85,6 +85,7 @@ func (s *Service) findByCredential(str string) (User, error) {
 	if err != nil {
 		return User{}, common.NotFoundError(nil, "cannot find user with this login")
 	}
+
 	return u, nil
 }
 
@@ -137,4 +138,14 @@ func (s *Service) LogOut(ID string) error {
 		return common.InvalidArgumentError(err, "no current session")
 	}
 	return nil
+}
+
+func (s *Service) FindUser(id string) (User, error) {
+	var u User
+	u, err := s.findByCredential(id)
+	if err != nil {
+		return User{}, err
+	}
+	u.cleanUp()
+	return u, nil
 }
