@@ -55,6 +55,9 @@ func (a *App) Run(port int, path string) error {
 	a.router.HandleFunc("/post/by_category", a.findByCategory)
 	a.router.Handle("/post/by_user", a.userIdentity(a.findByUser))
 	a.router.Handle("/post/liked", a.userIdentity(a.findAllLiked))
+	a.router.HandleFunc("/post/categories", a.allCategories)
+	a.router.HandleFunc("/post", a.findByID)
+	a.router.HandleFunc("/post/comments", a.findComments)
 
 	a.userService = user.NewService(a.db)
 	a.postService = post.NewService(a.db)
@@ -79,6 +82,8 @@ func (a *App) createDB() error {
 func setHeaders(w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "application/json")
 }
+
+//User handlers
 
 func (a *App) register(w http.ResponseWriter, r *http.Request) {
 	setHeaders(w)
@@ -187,6 +192,8 @@ func (a *App) auth(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 }
+
+//Post handlers
 
 func (a *App) addPost(w http.ResponseWriter, r *http.Request) {
 	setHeaders(w)
@@ -330,6 +337,70 @@ func (a *App) findAllLiked(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (a *App) allCategories(w http.ResponseWriter, r *http.Request) {
+	setHeaders(w)
+
+	categories, err := a.postService.ShowAllCategories()
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+
+	common.InfoLogger.Println("Get All Categories")
+	if err := json.NewEncoder(w).Encode(categories); err != nil {
+		handleError(w, err)
+		return
+	}
+}
+
+func (a *App) findByID(w http.ResponseWriter, r *http.Request) {
+	setHeaders(w)
+
+	id := r.URL.Query().Get("id")
+	pID, err := strconv.Atoi(id)
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+	post, err := a.postService.FindById(pID)
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+	common.InfoLogger.Println("Post found")
+	if err := json.NewEncoder(w).Encode(post); err != nil {
+		handleError(w, err)
+		return
+	}
+}
+
+func (a *App) findComments(w http.ResponseWriter, r *http.Request) {
+	setHeaders(w)
+
+	id := r.URL.Query().Get("id")
+	pID, err := strconv.Atoi(id)
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+
+	comments, err := a.postService.CommentsByPostId(pID)
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+	if comments == nil {
+		common.InfoLogger.Println("No comments")
+		return
+	}
+	common.InfoLogger.Println("Comments found")
+	if err := json.NewEncoder(w).Encode(comments); err != nil {
+		handleError(w, err)
+		return
+	}
+}
+
+//Error handler
 func handleError(w http.ResponseWriter, err error) {
 
 	var appErr *common.AppError

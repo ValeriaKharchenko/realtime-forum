@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"forum/internal/common"
+	"log"
 	"strings"
 )
 
@@ -324,4 +325,136 @@ ORDER BY p.created_at desc`
 		posts = append(posts, post)
 	}
 	return posts, nil
+}
+
+func (s *Service) ShowAllCategories() ([]Category, error) {
+	query := fmt.Sprintf("SELECT id, name FROM categories")
+	rows, err := s.db.Query(query)
+	if err != nil {
+		return nil, common.DataBaseError(err)
+	}
+	var categories []Category
+
+	for rows.Next() {
+		var s Category
+		if err := rows.Scan(&s.Id, &s.Name); err != nil {
+			log.Println(err)
+			continue
+		}
+		categories = append(categories, s)
+	}
+	if len(categories) == 0 {
+		return nil, common.NotFoundError(nil, "no categories were found")
+	}
+	return categories, nil
+}
+
+func (s *Service) FindById(postID int) (PostAndMarks, error) {
+	query := `SELECT p.id,
+       p.user_id,
+       u.login,
+       p.content,
+       p.subject,
+       p.created_at,
+       COALESCE(p.parent_id, 0)      as parent_id,
+       coalesce(dislike, 0)          as dislike,
+       coalesce(like, 0)             as dislike,
+       group_concat(distinct c.name) as category_name
+FROM posts p
+         LEFT JOIN (
+    Select post_id,
+           sum(case when not mark then 1 else 0 end) AS dislike,
+           sum(case when mark then 1 else 0 end)     AS like
+    FROM likes_dislikes
+    group by post_id
+) as ld ON p.id = ld.post_id
+         INNER JOIN posts_categories pc on p.id = pc.post_id
+         INNER JOIN categories c on c.id = pc.category_id
+         INNER JOIN users u on u.id = p.user_id
+WHERE p.id =$1`
+	row := s.db.QueryRow(query, postID)
+	var post PostAndMarks
+	err := row.Scan(&post.Id, &post.UserId, &post.UserLogin, &post.Content, &post.Subject, &post.CreatedAt, &post.ParentId, &post.Dislikes, &post.Likes, &post.Categories)
+	if err != nil {
+		return PostAndMarks{}, common.NotFoundError(err, "cannot find post")
+	}
+	return post, nil
+}
+
+func (s *Service) CommentsByPostId(id int) ([]PostAndMarks, error) {
+	comments, err := s.findComments(id)
+	if err != nil {
+		return nil, err
+	}
+	if len(comments) == 0 {
+		return nil, nil
+	}
+
+	parent, err := s.FindById(id)
+	if err != nil {
+		return nil, err
+	}
+
+	comments = append(comments, parent)
+	m := make(map[int][]PostAndMarks)
+	for _, p := range comments {
+		m[p.ParentId] = append(m[p.ParentId], p)
+	}
+	addNestedChild(m, &parent)
+	return parent.Comments, nil
+}
+
+func (s *Service) findComments(id int) ([]PostAndMarks, error) {
+	query := fmt.Sprintf(`with recursive cte (id, user_id, parent_id, content, created_at) as (
+    select id, user_id, parent_id, content, created_at
+    from posts
+    where parent_id =$1
+    union all
+    select p.id,
+           p.user_id,
+           p.parent_id,
+           p.content,
+           p.created_at
+    from posts p
+             inner join cte on p.parent_id = cte.id
+)
+select cte.id,
+       cte.user_id,
+       u.login,
+       cte.content,
+       cte.created_at,
+       cte.parent_id,
+       coalesce(sum(case when not ld.mark then 1 else 0 end), 0) AS dislike,
+       coalesce(sum(case when ld.mark then 1 else 0 end), 0)     AS like
+from cte
+         LEFT JOIN users u on cte.user_id = u.id
+         LEFT JOIN likes_dislikes ld on cte.id = ld.post_id
+group by cte.id`)
+	rows, err := s.db.Query(query, id)
+	if err != nil {
+		return nil, common.SystemError(err)
+	}
+	defer rows.Close()
+
+	var comments []PostAndMarks
+	for rows.Next() {
+		var p PostAndMarks
+		if err := rows.Scan(&p.Id, &p.UserId, &p.UserLogin, &p.Content, &p.CreatedAt, &p.ParentId, &p.Dislikes, &p.Likes); err != nil {
+			common.WarningLogger.Println(err)
+			continue
+		}
+		comments = append(comments, p)
+	}
+	return comments, nil
+}
+
+func addNestedChild(m map[int][]PostAndMarks, post *PostAndMarks) {
+	children := m[post.Id]
+	if len(children) == 0 {
+		return
+	}
+	post.Comments = children
+	for i := range post.Comments {
+		addNestedChild(m, &post.Comments[i])
+	}
 }
