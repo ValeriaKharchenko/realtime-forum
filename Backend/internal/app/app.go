@@ -62,7 +62,8 @@ func (a *App) Run(port int, path string) error {
 	a.userService = user.NewService(a.db)
 	a.postService = post.NewService(a.db)
 
-	return http.ListenAndServe(fmt.Sprintf(":%d", port), a.router)
+	common.InfoLogger.Println("Starting the application at port:", port)
+	return http.ListenAndServe(fmt.Sprintf(":%d", port), corsMW(a.router))
 }
 
 func (a *App) createDB() error {
