@@ -31,15 +31,3 @@ type Category struct {
 	Id   int    `json:"id"`
 	Name string `json:"name"`
 }
-
-//type CommentsAndMarks struct {
-//	Id        int                `json:"id,omitempty"`
-//	UserId    string             `json:"user_id,omitempty"`
-//	Content   string             `json:"content,omitempty"`
-//	CreatedAt time.Time          `json:"created_at"`
-//	ParentId  int                `json:"parent_id,omitempty"`
-//	UserLogin string             `json:"user_login,omitempty"`
-//	Likes     int                `json:"likes,omitempty"`
-//	Dislikes  int                `json:"dislikes,omitempty"`
-//	Children  []CommentsAndMarks `json:"children"`
-//}

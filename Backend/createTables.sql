@@ -85,8 +85,8 @@ create unique index if not exists sessions_user_id_uindex
     on sessions (user_id);
 
 insert OR IGNORE into categories (id, name) values (1, 'Books'), (2, 'Films'), (3, 'Games'), (4, 'Other');
--- insert or ignore into users (id, email, login, password) VALUES ('4c90dbd3-328e-48ba-8b41-1e004ff17932', 'testuser@mail.com', 'Test_User', '$2a$10$oYuM4Rtpdd7sRdnmuKMzaOzRn7wfB7KrnF7WdrgvzEQ6ZebOrbWaq');
--- insert or ignore into posts (id, user_id, content, subject, parent_id)  VALUES  (0, '4c90dbd3-328e-48ba-8b41-1e004ff17932', 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.',
---                                                                                  'New post', null);
--- insert or ignore into posts_categories (post_id, category_id) VALUES (0, 0);
+insert or ignore into users (id, email, login, password, age, gender, first_name, last_name) VALUES ('4c90dbd3-328e-48ba-8b41-1e004ff17932', 'testuser@mail.com', 'Test_User', '$2a$10$oYuM4Rtpdd7sRdnmuKMzaOzRn7wfB7KrnF7WdrgvzEQ6ZebOrbWaq', 20, 1, 'UserName', 'UserSurname');
+insert or ignore into posts (id, user_id, content, subject, parent_id)  VALUES  (0, '4c90dbd3-328e-48ba-8b41-1e004ff17932', 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.',
+                                                                                 'New post', null);
+insert or ignore into posts_categories (post_id, category_id) VALUES (0, 1);
 
