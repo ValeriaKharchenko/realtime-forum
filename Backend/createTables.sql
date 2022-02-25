@@ -95,6 +95,17 @@ create table if not exists chat
     send_at timestamp default CURRENT_TIMESTAMP not null
 );
 
+create table if not exists online_status
+(
+    user_id char(36) not null
+        constraint online_status_pk
+            primary key,
+    expires_at timestamp not null
+);
+
+create unique index online_status_user_id_uindex
+    on online_status (user_id);
+
 
 
 insert OR IGNORE into categories (id, name) values (1, 'Books'), (2, 'Films'), (3, 'Games'), (4, 'Other');
