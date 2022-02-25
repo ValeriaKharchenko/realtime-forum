@@ -73,6 +73,10 @@ func (s *Service) NewSession(str, pwd string) (string, error) {
 	if err := s.createSession(u.ID, sessionID); err != nil {
 		return "", err
 	}
+	if err := s.UpdateStatus(u.ID); err != nil {
+		return "", err
+	}
+	fmt.Println(u.Login, " is online")
 	return sessionID + "|" + u.ID, nil
 }
 
@@ -90,21 +94,21 @@ func (s *Service) findByCredential(str string) (User, error) {
 }
 
 func (s *Service) createSession(userID, sessionID string) error {
-	query := fmt.Sprintf("INSERT INTO sessions (%s) VALUES ($1, $2, $3)", sessionCol)
+	query := fmt.Sprintf("INSERT OR REPLACE INTO sessions (%s) VALUES ($1, $2, $3)", sessionCol)
 	t := time.Now().Add(24 * time.Hour)
 	_, err := s.db.Exec(query, sessionID, userID, t)
 
 	if err != nil {
-		// update session_key if exist
-		if err.Error() == "UNIQUE constraint failed: sessions.user_id" {
-			query := fmt.Sprintf("UPDATE sessions SET session_key=$1 WHERE user_id=$2")
-			t := time.Now().Add(24 * time.Hour)
-			_, err := s.db.Exec(query, sessionID, userID, t)
-			if err != nil {
-				return common.SystemError(err)
-			}
-			return nil
-		}
+		//// update session_key if exist
+		//if err.Error() == "UNIQUE constraint failed: sessions.user_id" {
+		//	query := fmt.Sprintf("UPDATE sessions SET session_key=$1 WHERE user_id=$2")
+		//	t := time.Now().Add(24 * time.Hour)
+		//	_, err := s.db.Exec(query, sessionID, userID, t)
+		//	if err != nil {
+		//		return common.SystemError(err)
+		//}
+		//return nil
+		//}
 		return common.SystemError(err)
 	}
 	return nil
@@ -148,4 +152,14 @@ func (s *Service) FindUser(id string) (User, error) {
 	}
 	u.cleanUp()
 	return u, nil
+}
+
+func (s *Service) UpdateStatus(userID string) error {
+	t := time.Now().Add(5 * time.Minute)
+	query := fmt.Sprintf(`insert or replace into online_status (user_id, expires_at) values ($1, $2)`)
+	_, err := s.db.Exec(query, userID, t)
+	if err != nil {
+		return common.SystemError(err)
+	}
+	return nil
 }

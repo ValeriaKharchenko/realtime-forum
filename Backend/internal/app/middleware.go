@@ -36,7 +36,11 @@ func (a *App) userIdentity(next http.HandlerFunc) http.Handler {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
-
+		if err := a.userService.UpdateStatus(u.ID); err != nil {
+			handleError(w, err)
+			return
+		}
+		fmt.Println(u.Login, "status updated")
 		// set context
 		ctx := context.WithValue(r.Context(), "user", userContext{userID: u.ID, login: u.Login, email: u.Email})
 		next(w, r.WithContext(ctx))
