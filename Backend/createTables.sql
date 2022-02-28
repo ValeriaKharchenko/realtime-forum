@@ -103,7 +103,7 @@ create table if not exists online_status
     expires_at timestamp not null
 );
 
-create unique index online_status_user_id_uindex
+create unique index if not exists online_status_user_id_uindex
     on online_status (user_id);
 
 
