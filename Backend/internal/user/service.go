@@ -135,11 +135,32 @@ func (s *Service) CheckSession(key, userID string) (User, error) {
 	return user, nil
 }
 
-func (s *Service) LogOut(ID string) error {
-	query := fmt.Sprintf("DELETE FROM sessions WHERE user_id=$1")
-	_, err := s.db.Exec(query, ID)
+func (s *Service) LogOut(userID string) error {
+	tx, err := s.db.Begin()
 	if err != nil {
+		return common.DataBaseError(err)
+	}
+	query := fmt.Sprintf("DELETE FROM sessions WHERE user_id=$1")
+	_, err = s.db.Exec(query, userID)
+	if err != nil {
+		if err := tx.Rollback(); err != nil {
+			common.ErrorLogger.Println(err)
+			return common.DataBaseError(err)
+		}
 		return common.InvalidArgumentError(err, "no current session")
+	}
+	query = fmt.Sprintf("DELETE FROM online_status WHERE user_id=$1")
+	_, err = s.db.Exec(query, userID)
+	if err != nil {
+		if err := tx.Rollback(); err != nil {
+			common.ErrorLogger.Println(err)
+			return common.DataBaseError(err)
+		}
+		return common.InvalidArgumentError(err, "user is not online")
+	}
+	if err := tx.Commit(); err != nil {
+		common.ErrorLogger.Println(err)
+		return common.DataBaseError(err)
 	}
 	return nil
 }
