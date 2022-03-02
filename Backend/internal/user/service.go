@@ -141,7 +141,7 @@ func (s *Service) LogOut(userID string) error {
 		return common.DataBaseError(err)
 	}
 	query := fmt.Sprintf("DELETE FROM sessions WHERE user_id=$1")
-	_, err = s.db.Exec(query, userID)
+	_, err = tx.Exec(query, userID)
 	if err != nil {
 		if err := tx.Rollback(); err != nil {
 			common.ErrorLogger.Println(err)
@@ -150,7 +150,7 @@ func (s *Service) LogOut(userID string) error {
 		return common.InvalidArgumentError(err, "no current session")
 	}
 	query = fmt.Sprintf("DELETE FROM online_status WHERE user_id=$1")
-	_, err = s.db.Exec(query, userID)
+	_, err = tx.Exec(query, userID)
 	if err != nil {
 		if err := tx.Rollback(); err != nil {
 			common.ErrorLogger.Println(err)

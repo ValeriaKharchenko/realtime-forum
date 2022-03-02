@@ -154,7 +154,7 @@ func (a *App) logOut(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	common.InfoLogger.Printf("User %s logged out", values.login)
+	common.InfoLogger.Printf("User %s logged out, status offline", values.login)
 }
 
 func (a *App) profile(w http.ResponseWriter, r *http.Request) {
