@@ -180,13 +180,14 @@ func (a *App) profile(w http.ResponseWriter, r *http.Request) {
 func (a *App) auth(w http.ResponseWriter, r *http.Request) {
 	setHeaders(w)
 
-	val, _ := r.Context().Value("values").(userContext)
+	val, _ := r.Context().Value("user").(userContext)
 
 	//setting values from context
 	var u user.User
 	u.ID = val.userID
 	u.Email = val.email
 	u.Login = val.login
+	fmt.Println(u)
 
 	if err := json.NewEncoder(w).Encode(u); err != nil {
 		handleError(w, err)
