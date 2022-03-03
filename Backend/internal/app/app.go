@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"forum/internal/chat"
 	"forum/internal/common"
 	"forum/internal/post"
 	"forum/internal/user"
@@ -21,6 +22,7 @@ type App struct {
 	router      *http.ServeMux
 	userService *user.Service
 	postService *post.Service
+	chatService *chat.Service
 }
 
 func (a *App) Run(port int, path string) error {
@@ -47,6 +49,7 @@ func (a *App) Run(port int, path string) error {
 	a.router.Handle("/logout", a.userIdentity(a.logOut))
 	a.router.Handle("/profile", a.userIdentity(a.profile))
 	a.router.Handle("/auth", a.userIdentity(a.auth))
+	a.router.Handle("/users", a.userIdentity(a.userList))
 
 	//post endpoints
 	a.router.Handle("/post/new", a.userIdentity(a.addPost))
@@ -61,6 +64,7 @@ func (a *App) Run(port int, path string) error {
 
 	a.userService = user.NewService(a.db)
 	a.postService = post.NewService(a.db)
+	a.chatService = chat.NewService(a.db)
 
 	common.InfoLogger.Println("Starting the application at port:", port)
 	return http.ListenAndServe(fmt.Sprintf(":%d", port), corsMW(a.router))
