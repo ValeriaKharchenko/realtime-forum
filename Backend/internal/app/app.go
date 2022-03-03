@@ -14,6 +14,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/gorilla/websocket"
+
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -23,11 +25,15 @@ type App struct {
 	userService *user.Service
 	postService *post.Service
 	chatService *chat.Service
+	upgrader    websocket.Upgrader
+	wsChan      chan WSPayload
+	clients     map[WSConnection]string
 }
 
 func (a *App) Run(port int, path string) error {
-	db, err := sql.Open("sqlite3", "file:"+path+"?_foreign_keys=on")
 
+	//DB initialisation and connection
+	db, err := sql.Open("sqlite3", "file:"+path+"?_foreign_keys=on")
 	if err != nil {
 		return err
 	}
@@ -41,8 +47,10 @@ func (a *App) Run(port int, path string) error {
 		return err
 	}
 	common.InfoLogger.Println("DataBase created successfully")
-
+	fmt.Println("Starting channel listener")
+	go a.listenToWsChannel()
 	a.router = http.NewServeMux()
+
 	//user endpoints
 	a.router.HandleFunc("/register", a.register)
 	a.router.HandleFunc("/login", a.logIn)
@@ -62,9 +70,25 @@ func (a *App) Run(port int, path string) error {
 	a.router.HandleFunc("/post", a.findByID)
 	a.router.HandleFunc("/post/comments", a.findComments)
 
+	//connection to file server
+	fs := http.FileServer(http.Dir("../Frontend/app"))
+	a.router.Handle("/", fs)
+	a.router.HandleFunc("/ws", a.handleConnections)
+
 	a.userService = user.NewService(a.db)
 	a.postService = post.NewService(a.db)
 	a.chatService = chat.NewService(a.db)
+
+	//ws
+	a.upgrader = websocket.Upgrader{
+		ReadBufferSize:  1024,
+		WriteBufferSize: 1024,
+		CheckOrigin: func(r *http.Request) bool {
+			return true
+		},
+	}
+	a.wsChan = make(chan WSPayload)
+	a.clients = make(map[WSConnection]string)
 
 	common.InfoLogger.Println("Starting the application at port:", port)
 	return http.ListenAndServe(fmt.Sprintf(":%d", port), corsMW(a.router))
