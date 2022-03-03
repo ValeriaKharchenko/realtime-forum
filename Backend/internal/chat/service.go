@@ -3,6 +3,7 @@ package chat
 import (
 	"database/sql"
 	"forum/internal/common"
+	"sort"
 )
 
 type Service struct {
@@ -32,5 +33,6 @@ func (s *Service) FindAllUsers() ([]string, error) {
 		}
 		list = append(list, s)
 	}
+	sort.Strings(list)
 	return list, nil
 }
