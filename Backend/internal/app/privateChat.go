@@ -3,6 +3,7 @@ package app
 import (
 	"encoding/json"
 	"fmt"
+	"forum/internal/chat"
 	"forum/internal/common"
 	"github.com/gorilla/websocket"
 	"log"
@@ -67,13 +68,13 @@ func (a *App) listenToWs(conn *WSConnection) {
 			log.Println("Error", fmt.Sprintf("%v", r))
 		}
 	}()
+	a.sendListUsers()
 	var payload WSPayload
 	for {
 		err := conn.ReadJSON(&payload)
 		if err != nil {
 			fmt.Println("cannot read JSON: ", err)
 		} else {
-			fmt.Printf("%#v", payload)
 			payload.Conn = *conn
 			a.wsChan <- payload
 		}
@@ -88,17 +89,11 @@ func (a *App) listenToWsChannel() {
 		switch e.Action {
 		case "username":
 			a.clients[e.Conn] = e.UserName
-			users := a.getListOfUsers()
-			response.Action = "list_users"
-			response.ConnectedUsers = users
-			a.broadcastToAll(response)
+			a.sendListUsers()
 
 		case "left":
-			response.Action = "list_users"
 			delete(a.clients, e.Conn)
-			users := a.getListOfUsers()
-			response.ConnectedUsers = users
-			a.broadcastToAll(response)
+			a.sendListUsers()
 
 		case "broadcast":
 			response.Action = "broadcast"
@@ -108,15 +103,44 @@ func (a *App) listenToWsChannel() {
 	}
 }
 
+func (a *App) sendListUsers() {
+	var response JsonResponse
+	users := a.getListOfUsers()
+	response.Action = "list_users"
+	response.ConnectedUsers = users
+	a.broadcastToAll(response)
+}
+
 func (a *App) getListOfUsers() []string {
-	var userList []string
+	var onlineUsers, userList []string
 	for _, x := range a.clients {
 		if x != "" {
-			userList = append(userList, x)
+			onlineUsers = append(onlineUsers, x)
 		}
 	}
-	sort.Strings(userList)
-	return userList
+	sort.Sort(chat.StringSlice(onlineUsers))
+
+	userList, err := a.chatService.FindAllUsers()
+	if err != nil {
+		//handleError(w, err)
+		//return nil
+	}
+
+	for _, u := range userList {
+		if !inArray(u, onlineUsers) {
+			onlineUsers = append(onlineUsers, u)
+		}
+	}
+	return onlineUsers
+}
+
+func inArray(needle string, stack []string) bool {
+	for _, el := range stack {
+		if el == needle {
+			return true
+		}
+	}
+	return false
 }
 
 func (a *App) broadcastToAll(response JsonResponse) {

@@ -34,12 +34,12 @@ func (s *Service) FindAllUsers() ([]string, error) {
 		}
 		list = append(list, s)
 	}
-	sort.Sort(stringSlice(list))
+	sort.Sort(StringSlice(list))
 	return list, nil
 }
 
-type stringSlice []string
+type StringSlice []string
 
-func (x stringSlice) Len() int           { return len(x) }
-func (x stringSlice) Less(i, j int) bool { return strings.ToLower(x[i]) < strings.ToLower(x[j]) }
-func (x stringSlice) Swap(i, j int)      { x[i], x[j] = x[j], x[i] }
+func (x StringSlice) Len() int           { return len(x) }
+func (x StringSlice) Less(i, j int) bool { return strings.ToLower(x[i]) < strings.ToLower(x[j]) }
+func (x StringSlice) Swap(i, j int)      { x[i], x[j] = x[j], x[i] }
