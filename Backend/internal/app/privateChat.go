@@ -54,7 +54,8 @@ func (a *App) handleConnections(w http.ResponseWriter, r *http.Request) {
 	var msg JsonResponse
 	msg.Message = `<em><small>Connected to Server</small></em>`
 	conn := WSConnection{Conn: ws}
-	a.clients[conn] = ""
+	//a.clients[conn] = ""
+	//a.cl.Store("", conn)
 	err = ws.WriteJSON(msg)
 	if err != nil {
 		log.Printf("error: %v", err)
@@ -68,7 +69,7 @@ func (a *App) listenToWs(conn *WSConnection) {
 			log.Println("Error", fmt.Sprintf("%v", r))
 		}
 	}()
-	a.sendListUsers()
+	//a.sendListUsers()
 	var payload WSPayload
 	for {
 		err := conn.ReadJSON(&payload)
@@ -88,11 +89,13 @@ func (a *App) listenToWsChannel() {
 		e := <-a.wsChan
 		switch e.Action {
 		case "username":
-			a.clients[e.Conn] = e.UserName
+			//a.clients[e.Conn] = e.UserName
+			a.cl.Store(e.UserName, e.Conn)
 			a.sendListUsers()
 
 		case "left":
-			delete(a.clients, e.Conn)
+			//delete(a.clients, e.Conn)
+			a.cl.Delete(e.UserName)
 			a.sendListUsers()
 
 		case "broadcast":
@@ -113,15 +116,22 @@ func (a *App) sendListUsers() {
 
 func (a *App) getListOfUsers() []string {
 	var onlineUsers, userList []string
-	for _, x := range a.clients {
-		if x != "" {
-			onlineUsers = append(onlineUsers, x)
+	//for _, x := range a.clients {
+	//	if x != "" {
+	//		onlineUsers = append(onlineUsers, x)
+	//	}
+	//}
+	a.cl.Range(func(key, value interface{}) bool {
+		if s, ok := key.(string); ok {
+			onlineUsers = append(onlineUsers, s)
 		}
-	}
+		return true
+	})
 	sort.Sort(chat.StringSlice(onlineUsers))
 
 	userList, err := a.chatService.FindAllUsers()
 	if err != nil {
+		fmt.Println(err)
 		//handleError(w, err)
 		//return nil
 	}
@@ -144,12 +154,22 @@ func inArray(needle string, stack []string) bool {
 }
 
 func (a *App) broadcastToAll(response JsonResponse) {
-	for client := range a.clients {
-		err := client.WriteJSON(response)
-		if err != nil {
-			log.Println("websocket err")
-			_ = client.Close()
-			delete(a.clients, client)
+	//for client := range a.clients {
+	//	err := client.WriteJSON(response)
+	//	if err != nil {
+	//		log.Println("websocket err")
+	//		_ = client.Close()
+	//		delete(a.clients, client)
+	//	}
+	//}
+	a.cl.Range(func(key, value interface{}) bool {
+		if conn, ok := value.(WSConnection); ok {
+			if err := conn.WriteJSON(response); err != nil {
+				common.WarningLogger.Println("websocket err:", err)
+				_ = conn.Close()
+				a.cl.Delete(key)
+			}
 		}
-	}
+		return true
+	})
 }

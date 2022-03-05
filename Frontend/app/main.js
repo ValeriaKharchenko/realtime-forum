@@ -22,7 +22,6 @@ export const WS = () => {
             console.log("error occurred", error);
         }
         ws.onmessage = msg => {
-            console.log(msg);
             let data = JSON.parse(msg.data);
             console.log("Action is ", data.action);
             switch (data.action) {

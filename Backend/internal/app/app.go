@@ -12,6 +12,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -28,6 +29,8 @@ type App struct {
 	upgrader    websocket.Upgrader
 	wsChan      chan WSPayload
 	clients     map[WSConnection]string
+
+	cl sync.Map
 }
 
 func (a *App) Run(port int, path string) error {
@@ -88,7 +91,7 @@ func (a *App) Run(port int, path string) error {
 		},
 	}
 	a.wsChan = make(chan WSPayload)
-	a.clients = make(map[WSConnection]string)
+	//a.clients = make(map[WSConnection]string)
 
 	common.InfoLogger.Println("Starting the application at port:", port)
 	return http.ListenAndServe(fmt.Sprintf(":%d", port), corsMW(a.router))
