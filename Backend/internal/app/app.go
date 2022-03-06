@@ -27,10 +27,9 @@ type App struct {
 	postService *post.Service
 	chatService *chat.Service
 	upgrader    websocket.Upgrader
-	wsChan      chan WSPayload
-	clients     map[WSConnection]string
-
-	cl sync.Map
+	//clients     map[WSConnection]string
+	cl     sync.Map
+	wsChan chan WSPayload
 }
 
 func (a *App) Run(port int, path string) error {
@@ -76,7 +75,7 @@ func (a *App) Run(port int, path string) error {
 	//connection to file server
 	fs := http.FileServer(http.Dir("../Frontend/app"))
 	a.router.Handle("/", fs)
-	a.router.HandleFunc("/ws", a.handleConnections)
+	a.router.Handle("/ws", a.userIdentity(a.handleConnections))
 
 	a.userService = user.NewService(a.db)
 	a.postService = post.NewService(a.db)

@@ -1,6 +1,6 @@
 let ws = null;
 let chat = document.getElementById("chat-messages");
-let userField = document.getElementById("username");
+let receiver = document.getElementById("receiver");
 let msgField = document.getElementById("message");
 
 export const WS = () => {
@@ -45,12 +45,12 @@ export const WS = () => {
             }
         }
 
-        userField.addEventListener('change', function () {
-            let jsonData = {};
-            jsonData['action'] = 'username';
-            jsonData['user_name'] = this.value;
-            ws.send(JSON.stringify(jsonData));
-        });
+        // receiver.addEventListener('change', function () {
+        //     let jsonData = {};
+        //     jsonData['action'] = 'username';
+        //     jsonData['user_name'] = this.value;
+        //     ws.send(JSON.stringify(jsonData));
+        // });
 
         msgField.addEventListener('keydown', (e) => {
             if (e.code === 'Enter') {
@@ -58,7 +58,7 @@ export const WS = () => {
                     console.log("no connection");
                     return false;
                 }
-                if (userField.value === "" || msgField.value === "") {
+                if (receiver.value === "" || msgField.value === "") {
                     alert("fill out user and message fields");
                     return false;
                 } else {
@@ -69,7 +69,7 @@ export const WS = () => {
                 }
         })
         document.getElementById("send-button").addEventListener('click', () => {
-            if (userField.value === "" || msgField.value === "") {
+            if (receiver.value === "" || msgField.value === "") {
                 alert("fill out user and message fields");
                 return false;
             } else {
@@ -82,7 +82,7 @@ export const WS = () => {
 function sendMessage() {
     let jsonData = {};
     jsonData['action'] = 'broadcast';
-    jsonData['user_name'] = userField.value;
+    jsonData['receiver'] = receiver.value;
     jsonData['message'] = msgField.value;
     ws.send(JSON.stringify(jsonData));
     msgField.value = "";

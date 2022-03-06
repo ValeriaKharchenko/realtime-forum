@@ -5,10 +5,11 @@ import (
 	"fmt"
 	"forum/internal/chat"
 	"forum/internal/common"
-	"github.com/gorilla/websocket"
 	"log"
 	"net/http"
 	"sort"
+
+	"github.com/gorilla/websocket"
 )
 
 type WSConnection struct {
@@ -19,6 +20,7 @@ type WSPayload struct {
 	Action   string       `json:"action"`
 	Message  string       `json:"message"`
 	UserName string       `json:"user_name"`
+	Receiver string       `json:"receiver"`
 	Conn     WSConnection `json:"-"`
 }
 
@@ -45,6 +47,8 @@ func (a *App) userList(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *App) handleConnections(w http.ResponseWriter, r *http.Request) {
+	val, _ := r.Context().Value("user").(userContext)
+	login := val.login
 	ws, err := a.upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Println(err)
@@ -60,23 +64,25 @@ func (a *App) handleConnections(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Printf("error: %v", err)
 	}
-	go a.listenToWs(&conn)
+	go a.listenToWs(conn, login)
 }
 
-func (a *App) listenToWs(conn *WSConnection) {
+func (a *App) listenToWs(conn WSConnection, login string) {
 	defer func() {
 		if r := recover(); r != nil {
 			log.Println("Error", fmt.Sprintf("%v", r))
 		}
 	}()
-	//a.sendListUsers()
+	a.cl.Store(conn, login)
+	a.sendListUsers()
 	var payload WSPayload
 	for {
 		err := conn.ReadJSON(&payload)
 		if err != nil {
 			fmt.Println("cannot read JSON: ", err)
 		} else {
-			payload.Conn = *conn
+			payload.Conn = conn
+			payload.UserName = login
 			a.wsChan <- payload
 		}
 	}
@@ -88,19 +94,19 @@ func (a *App) listenToWsChannel() {
 	for {
 		e := <-a.wsChan
 		switch e.Action {
-		case "username":
-			//a.clients[e.Conn] = e.UserName
-			a.cl.Store(e.UserName, e.Conn)
-			a.sendListUsers()
+		//case "username":
+		//	//a.clients[e.Conn] = e.UserName
+		//	a.cl.Store(e.Conn, e.UserName)
+		//	a.sendListUsers()
 
 		case "left":
 			//delete(a.clients, e.Conn)
-			a.cl.Delete(e.UserName)
+			a.cl.Delete(e.Conn)
 			a.sendListUsers()
 
 		case "broadcast":
 			response.Action = "broadcast"
-			response.Message = fmt.Sprintf("<strong>%s</strong>: %s", e.UserName, e.Message)
+			response.Message = fmt.Sprintf("<strong>%s</strong>: %s, %s", e.UserName, e.Receiver, e.Message)
 			a.broadcastToAll(response)
 		}
 	}
@@ -122,7 +128,7 @@ func (a *App) getListOfUsers() []string {
 	//	}
 	//}
 	a.cl.Range(func(key, value interface{}) bool {
-		if s, ok := key.(string); ok {
+		if s, ok := value.(string); ok {
 			onlineUsers = append(onlineUsers, s)
 		}
 		return true
@@ -163,11 +169,11 @@ func (a *App) broadcastToAll(response JsonResponse) {
 	//	}
 	//}
 	a.cl.Range(func(key, value interface{}) bool {
-		if conn, ok := value.(WSConnection); ok {
+		if conn, ok := key.(WSConnection); ok {
 			if err := conn.WriteJSON(response); err != nil {
 				common.WarningLogger.Println("websocket err:", err)
 				_ = conn.Close()
-				a.cl.Delete(key)
+				a.cl.Delete(value)
 			}
 		}
 		return true
