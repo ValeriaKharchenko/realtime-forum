@@ -59,8 +59,6 @@ func (a *App) handleConnections(w http.ResponseWriter, r *http.Request) {
 	var msg JsonResponse
 	msg.Message = `<em><small>Connected to Server</small></em>`
 	conn := WSConnection{Conn: ws}
-	//a.clients[conn] = ""
-	//a.cl.Store("", conn)
 	err = ws.WriteJSON(msg)
 	if err != nil {
 		log.Printf("error: %v", err)
@@ -95,17 +93,17 @@ func (a *App) listenToWsChannel() {
 	for {
 		e := <-a.wsChan
 		switch e.Action {
-		//case "username":
-		//	//a.clients[e.Conn] = e.UserName
-		//	a.cl.Store(e.Conn, e.UserName)
-		//	a.sendListUsers()
 
 		case "left":
-			//delete(a.clients, e.Conn)
 			a.cl.Delete(e.UserName)
 			a.sendListUsers()
 
 		case "broadcast":
+			if err := a.chatService.SendMessage(e.UserName, e.Receiver, e.Message); err != nil {
+				response.Action = "error"
+				response.Message = fmt.Sprintf("Message was not save, DB error: %s", err)
+				break
+			}
 			response.Action = "broadcast"
 			response.Message = fmt.Sprintf("<strong>%s</strong>: %s", e.UserName, e.Message)
 			response.Receiver = e.Receiver
@@ -128,11 +126,6 @@ func (a *App) sendListUsers() {
 
 func (a *App) getListOfUsers() []string {
 	var onlineUsers, userList []string
-	//for _, x := range a.clients {
-	//	if x != "" {
-	//		onlineUsers = append(onlineUsers, x)
-	//	}
-	//}
 	a.cl.Range(func(key, value interface{}) bool {
 		if s, ok := key.(string); ok {
 			onlineUsers = append(onlineUsers, s)
@@ -166,14 +159,6 @@ func inArray(needle string, stack []string) bool {
 }
 
 func (a *App) broadcastToAll(response JsonResponse) {
-	//for client := range a.clients {
-	//	err := client.WriteJSON(response)
-	//	if err != nil {
-	//		log.Println("websocket err")
-	//		_ = client.Close()
-	//		delete(a.clients, client)
-	//	}
-	//}
 	a.cl.Range(func(key, value interface{}) bool {
 		a.sendOne(response, key.(string))
 		return true

@@ -91,7 +91,7 @@ create table if not exists chat
             primary key autoincrement,
     msg_from char(36) not null,
     msg_to char(36) not null,
-    text text not null,
+    msg text not null,
     send_at timestamp default CURRENT_TIMESTAMP not null
 );
 

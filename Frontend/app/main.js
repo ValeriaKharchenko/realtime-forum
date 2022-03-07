@@ -42,6 +42,9 @@ export const WS = () => {
                     console.log(data.message);
                     chat.innerHTML = chat.innerHTML + data.message + "<br>";
                     break;
+                case "error":
+                    console.log(data.message);
+                    break;
             }
         }
 
