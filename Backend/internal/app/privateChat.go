@@ -25,10 +25,11 @@ type WSPayload struct {
 }
 
 type JsonResponse struct {
-	Action         string   `json:"action"`
-	Message        string   `json:"message"`
-	MessageType    string   `json:"message_type"`
+	Action  string `json:"action"`
+	Message string `json:"message"`
+	//MessageType    string   `json:"message_type"`
 	ConnectedUsers []string `json:"connected_users"`
+	Receiver       string   `json:"-"`
 }
 
 func (a *App) userList(w http.ResponseWriter, r *http.Request) {
@@ -73,7 +74,7 @@ func (a *App) listenToWs(conn WSConnection, login string) {
 			log.Println("Error", fmt.Sprintf("%v", r))
 		}
 	}()
-	a.cl.Store(conn, login)
+	a.cl.Store(login, conn)
 	a.sendListUsers()
 	var payload WSPayload
 	for {
@@ -101,13 +102,18 @@ func (a *App) listenToWsChannel() {
 
 		case "left":
 			//delete(a.clients, e.Conn)
-			a.cl.Delete(e.Conn)
+			a.cl.Delete(e.UserName)
 			a.sendListUsers()
 
 		case "broadcast":
 			response.Action = "broadcast"
-			response.Message = fmt.Sprintf("<strong>%s</strong>: %s, %s", e.UserName, e.Receiver, e.Message)
-			a.broadcastToAll(response)
+			response.Message = fmt.Sprintf("<strong>%s</strong>: %s", e.UserName, e.Message)
+			response.Receiver = e.Receiver
+			if a.sendOne(response, e.UserName) && a.sendOne(response, e.Receiver) {
+				common.InfoLogger.Println("Personal message sent")
+			} else {
+				common.InfoLogger.Printf("Cannot send a message from %s to %s\n", e.UserName, e.Receiver)
+			}
 		}
 	}
 }
@@ -128,7 +134,7 @@ func (a *App) getListOfUsers() []string {
 	//	}
 	//}
 	a.cl.Range(func(key, value interface{}) bool {
-		if s, ok := value.(string); ok {
+		if s, ok := key.(string); ok {
 			onlineUsers = append(onlineUsers, s)
 		}
 		return true
@@ -169,13 +175,21 @@ func (a *App) broadcastToAll(response JsonResponse) {
 	//	}
 	//}
 	a.cl.Range(func(key, value interface{}) bool {
-		if conn, ok := key.(WSConnection); ok {
-			if err := conn.WriteJSON(response); err != nil {
-				common.WarningLogger.Println("websocket err:", err)
-				_ = conn.Close()
-				a.cl.Delete(value)
-			}
-		}
+		a.sendOne(response, key.(string))
 		return true
 	})
+}
+
+func (a *App) sendOne(response JsonResponse, sendTo string) bool {
+	if conn, ok := a.cl.Load(sendTo); ok {
+		c := conn.(WSConnection)
+		if err := c.WriteJSON(response); err != nil {
+			common.WarningLogger.Println("websocket err:", err)
+			_ = c.Close()
+			a.cl.Delete(sendTo)
+			return false
+		}
+		return true
+	}
+	return false
 }
