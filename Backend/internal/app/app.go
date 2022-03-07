@@ -79,7 +79,7 @@ func (a *App) Run(port int, path string) error {
 
 	a.userService = user.NewService(a.db)
 	a.postService = post.NewService(a.db)
-	a.chatService = chat.NewService(a.db)
+	a.chatService = chat.NewService(a.db, a.userService)
 
 	//ws
 	a.upgrader = websocket.Upgrader{

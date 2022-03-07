@@ -62,7 +62,7 @@ func (s *Service) userToDB(user User) error {
 
 func (s *Service) NewSession(str, pwd string) (string, error) {
 
-	u, err := s.findByCredential(str)
+	u, err := s.FindByCredential(str)
 	if err != nil {
 		return "", err
 	}
@@ -80,7 +80,7 @@ func (s *Service) NewSession(str, pwd string) (string, error) {
 	return sessionID + "|" + u.ID, nil
 }
 
-func (s *Service) findByCredential(str string) (User, error) {
+func (s *Service) FindByCredential(str string) (User, error) {
 	query := fmt.Sprintf("SELECT %s FROM users WHERE login=$1 OR email=$1 OR id=$1", userCol)
 	row := s.db.QueryRow(query, str)
 
@@ -167,7 +167,7 @@ func (s *Service) LogOut(userID string) error {
 
 func (s *Service) FindUser(id string) (User, error) {
 	var u User
-	u, err := s.findByCredential(id)
+	u, err := s.FindByCredential(id)
 	if err != nil {
 		return User{}, err
 	}

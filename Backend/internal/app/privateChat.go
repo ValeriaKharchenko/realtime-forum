@@ -5,11 +5,10 @@ import (
 	"fmt"
 	"forum/internal/chat"
 	"forum/internal/common"
+	"github.com/gorilla/websocket"
 	"log"
 	"net/http"
 	"sort"
-
-	"github.com/gorilla/websocket"
 )
 
 type WSConnection struct {
