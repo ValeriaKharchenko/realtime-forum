@@ -2,6 +2,7 @@ package chat
 
 import (
 	"database/sql"
+	"fmt"
 	"forum/internal/common"
 	"forum/internal/user"
 	"sort"
@@ -85,8 +86,8 @@ func (s *Service) GetMessages(sender, receiver string) ([]Message, error) {
    									FROM chat as c
     								JOIN users uf ON c.msg_from = uf.id
     								JOIN users ut ON c.msg_to = ut.id
-									WHERE c.msg_from=$1 AND c.msg_to=$2 OR c.msg_from=$2 And c.msg_to=$1  
-									ORDER BY send_at ASC`, from, to)
+									WHERE c.msg_from=$1 AND c.msg_to=$2 OR c.msg_from=$2 AND c.msg_to=$1  
+									ORDER BY send_at ASC`, from.ID, to.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -100,6 +101,8 @@ func (s *Service) GetMessages(sender, receiver string) ([]Message, error) {
 			common.InfoLogger.Println(err)
 			continue
 		}
+		messages = append(messages, m)
 	}
+	fmt.Println(messages)
 	return messages, nil
 }

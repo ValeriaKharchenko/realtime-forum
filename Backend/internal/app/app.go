@@ -77,6 +77,8 @@ func (a *App) Run(port int, path string) error {
 	a.router.Handle("/", fs)
 	a.router.Handle("/ws", a.userIdentity(a.handleConnections))
 
+	a.router.Handle("/chat", a.userIdentity(a.getMessages))
+
 	a.userService = user.NewService(a.db)
 	a.postService = post.NewService(a.db)
 	a.chatService = chat.NewService(a.db, a.userService)

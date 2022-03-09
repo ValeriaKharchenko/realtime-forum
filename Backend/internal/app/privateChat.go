@@ -46,6 +46,26 @@ func (a *App) userList(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (a *App) getMessages(w http.ResponseWriter, r *http.Request) {
+	setHeaders(w)
+	val, _ := r.Context().Value("user").(userContext)
+
+	//setting values from context
+	senderLogin := val.login
+	receiverLogin := r.URL.Query().Get("with")
+	messages, err := a.chatService.GetMessages(senderLogin, receiverLogin)
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+	common.InfoLogger.Printf("Got %d messages between %s and %s", len(messages), senderLogin, receiverLogin)
+
+	if err := json.NewEncoder(w).Encode(messages); err != nil {
+		handleError(w, err)
+		return
+	}
+}
+
 func (a *App) handleConnections(w http.ResponseWriter, r *http.Request) {
 	val, _ := r.Context().Value("user").(userContext)
 	login := val.login
