@@ -65,7 +65,7 @@ func (ws *WS) listenToWs(conn WSConnection, login string) {
 		}
 	}()
 	ws.cl.Store(login, conn)
-	ws.sendListUsers()
+	ws.sendListUsers(login)
 	var payload WSPayload
 	for {
 		err := conn.ReadJSON(&payload)
@@ -88,7 +88,7 @@ func (ws *WS) listenToWsChannel() {
 
 		case "left":
 			ws.cl.Delete(e.UserName)
-			ws.sendListUsers()
+			//ws.sendListUsers()
 
 		case "broadcast":
 			if err := ws.chatService.SendMessage(e.UserName, e.Receiver, e.Message); err != nil {
@@ -96,6 +96,7 @@ func (ws *WS) listenToWsChannel() {
 				response.Message = fmt.Sprintf("Message was not save, DB error: %s", err)
 				break
 			}
+			ws.sendListUsers(e.UserName)
 			response.Action = "broadcast"
 			response.Message = fmt.Sprintf("<strong>%s</strong>: %s", e.UserName, e.Message)
 			response.Receiver = e.Receiver
@@ -108,15 +109,15 @@ func (ws *WS) listenToWsChannel() {
 	}
 }
 
-func (ws *WS) sendListUsers() {
+func (ws *WS) sendListUsers(login string) {
 	var response JsonResponse
-	users := ws.getListOfUsers()
+	users := ws.getListOfUsers(login)
 	response.Action = "list_users"
 	response.ConnectedUsers = users
 	ws.broadcastToAll(response)
 }
 
-func (ws *WS) getListOfUsers() []string {
+func (ws *WS) getListOfUsers(login string) []string {
 	var onlineUsers, userList []string
 	ws.cl.Range(func(key, value interface{}) bool {
 		if s, ok := key.(string); ok {
@@ -126,19 +127,19 @@ func (ws *WS) getListOfUsers() []string {
 	})
 	sort.Sort(StringSlice(onlineUsers)) // сделать приватной
 
-	userList, err := ws.userService.FindAllUsers()
+	userList, err := ws.userService.FindAllUsers(login)
 	if err != nil {
 		fmt.Println(err)
 		//handleError(w, err)
 		//return nil
 	}
 
-	for _, u := range userList {
-		if !inArray(u, onlineUsers) {
-			onlineUsers = append(onlineUsers, u)
-		}
-	}
-	return onlineUsers
+	//for _, u := range userList {
+	//	if !inArray(u, onlineUsers) {
+	//		onlineUsers = append(onlineUsers, u)
+	//	}
+	//}
+	return userList
 }
 
 func inArray(needle string, stack []string) bool {

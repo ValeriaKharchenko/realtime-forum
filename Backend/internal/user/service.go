@@ -194,8 +194,16 @@ func (s *Service) FindUser(id string) (User, error) {
 //	return nil
 //}
 
-func (s *Service) FindAllUsers() ([]string, error) {
-	rows, err := s.db.Query(`SELECT login FROM users ORDER BY login COLLATE NOCASE ASC`)
+func (s *Service) FindAllUsers(login string) ([]string, error) {
+	user, err := s.FindByCredential(login)
+	if err != nil {
+		return nil, err
+	}
+	rows, err := s.db.Query(`select u.login from users u
+  left outer join chat c on (u.id = msg_from OR u.id = c.msg_to) AND (c.msg_from=$1 or c.msg_to=$1)
+where u.id <> $1
+group by u.login
+ORDER BY max(c.send_at) DESC, u.login COLLATE NOCASE ASC;`, user.ID)
 	if err != nil {
 		return nil, err
 	}

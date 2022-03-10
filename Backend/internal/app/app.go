@@ -57,7 +57,7 @@ func (a *App) Run(port int, path string) error {
 	a.router.Handle("/logout", a.userIdentity(a.logOut))
 	a.router.Handle("/profile", a.userIdentity(a.profile))
 	a.router.Handle("/auth", a.userIdentity(a.auth))
-	a.router.Handle("/users", a.userIdentity(a.userList))
+	//a.router.Handle("/users", a.userIdentity(a.userList))
 
 	//post endpoints
 	a.router.Handle("/post/new", a.userIdentity(a.addPost))
@@ -433,20 +433,20 @@ func (a *App) findComments(w http.ResponseWriter, r *http.Request) {
 
 //Chat handlers
 
-func (a *App) userList(w http.ResponseWriter, r *http.Request) {
-	setHeaders(w)
-	allUsers, err := a.userService.FindAllUsers()
-	if err != nil {
-		handleError(w, err)
-		return
-	}
-	common.InfoLogger.Println("Got list of users")
-
-	if err := json.NewEncoder(w).Encode(allUsers); err != nil {
-		handleError(w, err)
-		return
-	}
-}
+//func (a *App) userList(w http.ResponseWriter, r *http.Request) {
+//	setHeaders(w)
+//	allUsers, err := a.userService.FindAllUsers()
+//	if err != nil {
+//		handleError(w, err)
+//		return
+//	}
+//	common.InfoLogger.Println("Got list of users")
+//
+//	if err := json.NewEncoder(w).Encode(allUsers); err != nil {
+//		handleError(w, err)
+//		return
+//	}
+//}
 
 func (a *App) getMessages(w http.ResponseWriter, r *http.Request) {
 	setHeaders(w)

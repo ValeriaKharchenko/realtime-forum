@@ -28,6 +28,7 @@ export const WS = () => {
                 case "list_users":
                     let list = document.getElementById('online-users');
                     while (list.firstChild) list.removeChild(list.firstChild);
+                    console.log(data)
                     if (data.connected_users.length > 0) {
                         data.connected_users.forEach(function (item) {
                             console.log(item);
