@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"forum/internal/common"
 	"forum/internal/user"
-	"sort"
 	"strings"
 	"time"
 )
@@ -29,27 +28,6 @@ type Message struct {
 	Data time.Time `json:"data"`
 }
 
-func (s *Service) FindAllUsers() ([]string, error) {
-	rows, err := s.db.Query(`SELECT login FROM users`)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var list []string
-	for rows.Next() {
-		var s string
-		err := rows.Scan(&s)
-		if err != nil {
-			common.InfoLogger.Println(err)
-			continue
-		}
-		list = append(list, s)
-	}
-	sort.Sort(StringSlice(list))
-	return list, nil
-}
-
 type StringSlice []string
 
 func (x StringSlice) Len() int { return len(x) }
@@ -70,6 +48,7 @@ func (s *Service) SendMessage(sender, receiver, message string) error {
 		common.WarningLogger.Println("DB error: ", err)
 		return err
 	}
+
 	return nil
 }
 

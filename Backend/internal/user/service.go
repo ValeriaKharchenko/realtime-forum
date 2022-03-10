@@ -73,10 +73,10 @@ func (s *Service) NewSession(str, pwd string) (string, error) {
 	if err := s.createSession(u.ID, sessionID); err != nil {
 		return "", err
 	}
-	if err := s.UpdateStatus(u.ID); err != nil {
-		return "", err
-	}
-	fmt.Println(u.Login, " is online")
+	//if err := s.UpdateStatus(u.ID); err != nil {
+	//	return "", err
+	//}
+	//fmt.Println(u.Login, " is online")
 	return sessionID + "|" + u.ID, nil
 }
 
@@ -136,34 +136,43 @@ func (s *Service) CheckSession(key, userID string) (User, error) {
 }
 
 func (s *Service) LogOut(userID string) error {
-	tx, err := s.db.Begin()
-	if err != nil {
-		return common.DataBaseError(err)
-	}
 	query := fmt.Sprintf("DELETE FROM sessions WHERE user_id=$1")
-	_, err = tx.Exec(query, userID)
+	_, err := s.db.Exec(query, userID)
 	if err != nil {
-		if err := tx.Rollback(); err != nil {
-			common.ErrorLogger.Println(err)
-			return common.DataBaseError(err)
-		}
 		return common.InvalidArgumentError(err, "no current session")
-	}
-	query = fmt.Sprintf("DELETE FROM online_status WHERE user_id=$1")
-	_, err = tx.Exec(query, userID)
-	if err != nil {
-		if err := tx.Rollback(); err != nil {
-			common.ErrorLogger.Println(err)
-			return common.DataBaseError(err)
-		}
-		return common.InvalidArgumentError(err, "user is not online")
-	}
-	if err := tx.Commit(); err != nil {
-		common.ErrorLogger.Println(err)
-		return common.DataBaseError(err)
 	}
 	return nil
 }
+
+//func (s *Service) LogOut(userID string) error {
+//	tx, err := s.db.Begin()
+//	if err != nil {
+//		return common.DataBaseError(err)
+//	}
+//	query := fmt.Sprintf("DELETE FROM sessions WHERE user_id=$1")
+//	_, err = tx.Exec(query, userID)
+//	if err != nil {
+//		if err := tx.Rollback(); err != nil {
+//			common.ErrorLogger.Println(err)
+//			return common.DataBaseError(err)
+//		}
+//		return common.InvalidArgumentError(err, "no current session")
+//	}
+//	query = fmt.Sprintf("DELETE FROM online_status WHERE user_id=$1")
+//	_, err = tx.Exec(query, userID)
+//	if err != nil {
+//		if err := tx.Rollback(); err != nil {
+//			common.ErrorLogger.Println(err)
+//			return common.DataBaseError(err)
+//		}
+//		return common.InvalidArgumentError(err, "user is not online")
+//	}
+//	if err := tx.Commit(); err != nil {
+//		common.ErrorLogger.Println(err)
+//		return common.DataBaseError(err)
+//	}
+//	return nil
+//}
 
 func (s *Service) FindUser(id string) (User, error) {
 	var u User
@@ -175,12 +184,32 @@ func (s *Service) FindUser(id string) (User, error) {
 	return u, nil
 }
 
-func (s *Service) UpdateStatus(userID string) error {
-	t := time.Now().Add(5 * time.Minute)
-	query := fmt.Sprintf(`insert or replace into online_status (user_id, expires_at) values ($1, $2)`)
-	_, err := s.db.Exec(query, userID, t)
+//func (s *Service) UpdateStatus(userID string) error {
+//	t := time.Now().Add(5 * time.Minute)
+//	query := fmt.Sprintf(`insert or replace into online_status (user_id, expires_at) values ($1, $2)`)
+//	_, err := s.db.Exec(query, userID, t)
+//	if err != nil {
+//		return common.SystemError(err)
+//	}
+//	return nil
+//}
+
+func (s *Service) FindAllUsers() ([]string, error) {
+	rows, err := s.db.Query(`SELECT login FROM users ORDER BY login COLLATE NOCASE ASC`)
 	if err != nil {
-		return common.SystemError(err)
+		return nil, err
 	}
-	return nil
+	defer rows.Close()
+
+	var list []string
+	for rows.Next() {
+		var s string
+		err := rows.Scan(&s)
+		if err != nil {
+			common.InfoLogger.Println(err)
+			continue
+		}
+		list = append(list, s)
+	}
+	return list, nil
 }

@@ -10,9 +10,9 @@ import (
 	"forum/internal/post"
 	"forum/internal/user"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"strconv"
-	"sync"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -27,9 +27,7 @@ type App struct {
 	postService *post.Service
 	chatService *chat.Service
 	upgrader    websocket.Upgrader
-	//clients     map[WSConnection]string
-	cl     sync.Map
-	wsChan chan WSPayload
+	ws          *chat.WS
 }
 
 func (a *App) Run(port int, path string) error {
@@ -50,7 +48,7 @@ func (a *App) Run(port int, path string) error {
 	}
 	common.InfoLogger.Println("DataBase created successfully")
 	fmt.Println("Starting channel listener")
-	go a.listenToWsChannel()
+
 	a.router = http.NewServeMux()
 
 	//user endpoints
@@ -82,6 +80,7 @@ func (a *App) Run(port int, path string) error {
 	a.userService = user.NewService(a.db)
 	a.postService = post.NewService(a.db)
 	a.chatService = chat.NewService(a.db, a.userService)
+	a.ws = chat.NewWS(a.userService, a.chatService)
 
 	//ws
 	a.upgrader = websocket.Upgrader{
@@ -91,8 +90,6 @@ func (a *App) Run(port int, path string) error {
 			return true
 		},
 	}
-	a.wsChan = make(chan WSPayload)
-	//a.clients = make(map[WSConnection]string)
 
 	common.InfoLogger.Println("Starting the application at port:", port)
 	return http.ListenAndServe(fmt.Sprintf(":%d", port), corsMW(a.router))
@@ -186,7 +183,7 @@ func (a *App) logOut(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	common.InfoLogger.Printf("User %s logged out, status offline", values.login)
+	common.InfoLogger.Printf("User %s logged out", values.login)
 }
 
 func (a *App) profile(w http.ResponseWriter, r *http.Request) {
@@ -432,6 +429,59 @@ func (a *App) findComments(w http.ResponseWriter, r *http.Request) {
 		handleError(w, err)
 		return
 	}
+}
+
+//Chat handlers
+
+func (a *App) userList(w http.ResponseWriter, r *http.Request) {
+	setHeaders(w)
+	allUsers, err := a.userService.FindAllUsers()
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+	common.InfoLogger.Println("Got list of users")
+
+	if err := json.NewEncoder(w).Encode(allUsers); err != nil {
+		handleError(w, err)
+		return
+	}
+}
+
+func (a *App) getMessages(w http.ResponseWriter, r *http.Request) {
+	setHeaders(w)
+	val, _ := r.Context().Value("user").(userContext)
+
+	//setting values from context
+	senderLogin := val.login
+	receiverLogin := r.URL.Query().Get("with")
+	messages, err := a.chatService.GetMessages(senderLogin, receiverLogin)
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+	common.InfoLogger.Printf("Got %d messages between %s and %s", len(messages), senderLogin, receiverLogin)
+
+	if err := json.NewEncoder(w).Encode(messages); err != nil {
+		handleError(w, err)
+		return
+	}
+}
+
+//WS handlers
+
+func (a *App) handleConnections(w http.ResponseWriter, r *http.Request) {
+	val, _ := r.Context().Value("user").(userContext)
+	login := val.login
+	ws, err := a.upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		log.Println(err)
+	}
+	if err := a.ws.StartListener(ws, login); err != nil {
+		handleError(w, err)
+		return
+	}
+	common.InfoLogger.Println("Client connected to endpoint successfully")
 }
 
 //Error handler
