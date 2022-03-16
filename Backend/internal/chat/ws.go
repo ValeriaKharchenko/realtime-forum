@@ -6,7 +6,7 @@ import (
 	"forum/internal/user"
 	"github.com/gorilla/websocket"
 	"log"
-	"sort"
+	//"sort"
 	"sync"
 )
 
@@ -39,10 +39,10 @@ type WSPayload struct {
 }
 
 type JsonResponse struct {
-	Action         string   `json:"action"`
-	Message        string   `json:"message"`
-	ConnectedUsers []string `json:"connected_users"`
-	Receiver       string   `json:"-"`
+	Action         string       `json:"action"`
+	Message        string       `json:"message"`
+	ConnectedUsers []UserInChat `json:"connected_users"`
+	Receiver       string       `json:"-"`
 }
 
 func (ws *WS) StartListener(webS *websocket.Conn, userLogin string) error {
@@ -65,7 +65,7 @@ func (ws *WS) listenToWs(conn WSConnection, login string) {
 		}
 	}()
 	ws.cl.Store(login, conn)
-	ws.sendListUsers(login)
+	ws.sendListUsers()
 	var payload WSPayload
 	for {
 		err := conn.ReadJSON(&payload)
@@ -88,7 +88,7 @@ func (ws *WS) listenToWsChannel() {
 
 		case "left":
 			ws.cl.Delete(e.UserName)
-			//ws.sendListUsers()
+			ws.sendListUsers()
 
 		case "broadcast":
 			if err := ws.chatService.SendMessage(e.UserName, e.Receiver, e.Message); err != nil {
@@ -96,7 +96,7 @@ func (ws *WS) listenToWsChannel() {
 				response.Message = fmt.Sprintf("Message was not save, DB error: %s", err)
 				break
 			}
-			ws.sendListUsers(e.UserName)
+			ws.sendListUsers()
 			response.Action = "broadcast"
 			response.Message = fmt.Sprintf("<strong>%s</strong>: %s", e.UserName, e.Message)
 			response.Receiver = e.Receiver
@@ -109,42 +109,65 @@ func (ws *WS) listenToWsChannel() {
 	}
 }
 
-func (ws *WS) sendListUsers(login string) {
+func (ws *WS) sendListUsers() {
 	var response JsonResponse
-	users := ws.getListOfUsers(login)
-	response.Action = "list_users"
-	response.ConnectedUsers = users
-	ws.broadcastToAll(response)
-}
-
-func (ws *WS) getListOfUsers(login string) []string {
-	var onlineUsers, userList []string
 	ws.cl.Range(func(key, value interface{}) bool {
-		if s, ok := key.(string); ok {
-			onlineUsers = append(onlineUsers, s)
+		if login, ok := key.(string); ok {
+			users := ws.getListOfUsers(login)
+			response.Action = "list_users"
+			response.ConnectedUsers = users
+			//ws.broadcastToAll(response)
+			ws.sendOne(response, login)
 		}
+
 		return true
 	})
-	sort.Sort(StringSlice(onlineUsers)) // сделать приватной
+	//users := ws.getListOfUsers(login)
+	//response.Action = "list_users"
+	//response.ConnectedUsers = users
+	//ws.broadcastToAll(response)
+}
 
-	userList, err := ws.userService.FindAllUsers(login)
+type UserInChat struct {
+	UserLogin    string `json:"user_login"`
+	OnlineStatus bool   `json:"online_status"`
+}
+
+func (ws *WS) getListOfUsers(login string) []UserInChat {
+	var onlineUsers []UserInChat
+	//ws.cl.Range(func(key, value interface{}) bool {
+	//	if s, ok := key.(string); ok {
+	//		var us UserInChat
+	//		us.UserLogin = s
+	//		us.OnlineStatus = true
+	//		onlineUsers = append(onlineUsers, us)
+	//	}
+	//	return true
+	//})
+	//sort.Sort(StringSlice(onlineUsers)) // сделать приватной
+
+	usersFromDB, err := ws.userService.FindAllUsers(login)
 	if err != nil {
 		fmt.Println(err)
 		//handleError(w, err)
 		//return nil
 	}
 
-	//for _, u := range userList {
-	//	if !inArray(u, onlineUsers) {
-	//		onlineUsers = append(onlineUsers, u)
-	//	}
-	//}
-	return userList
+	for _, u := range usersFromDB {
+		//if !inArray(u, onlineUsers) {
+		var us UserInChat
+		us.UserLogin = u
+		_, us.OnlineStatus = ws.cl.Load(u)
+		onlineUsers = append(onlineUsers, us)
+
+	}
+	//fmt.Println("online users: ", onlineUsers)
+	return onlineUsers
 }
 
-func inArray(needle string, stack []string) bool {
+func inArray(needle string, stack []UserInChat) bool {
 	for _, el := range stack {
-		if el == needle {
+		if el.UserLogin == needle {
 			return true
 		}
 	}
