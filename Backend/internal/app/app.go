@@ -137,6 +137,7 @@ func (a *App) register(w http.ResponseWriter, r *http.Request) {
 		handleError(w, err)
 		return
 	}
+	a.ws.SendListUsers()
 }
 
 func (a *App) logIn(w http.ResponseWriter, r *http.Request) {

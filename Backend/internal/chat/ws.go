@@ -65,7 +65,7 @@ func (ws *WS) listenToWs(conn WSConnection, login string) {
 		}
 	}()
 	ws.cl.Store(login, conn)
-	ws.sendListUsers()
+	ws.SendListUsers()
 	var payload WSPayload
 	for {
 		err := conn.ReadJSON(&payload)
@@ -88,7 +88,7 @@ func (ws *WS) listenToWsChannel() {
 
 		case "left":
 			ws.cl.Delete(e.UserName)
-			ws.sendListUsers()
+			ws.SendListUsers()
 
 		case "broadcast":
 			if err := ws.chatService.SendMessage(e.UserName, e.Receiver, e.Message); err != nil {
@@ -96,7 +96,7 @@ func (ws *WS) listenToWsChannel() {
 				response.Message = fmt.Sprintf("Message was not save, DB error: %s", err)
 				break
 			}
-			ws.sendListUsers()
+			ws.SendListUsers()
 			response.Action = "broadcast"
 			response.Message = fmt.Sprintf("<strong>%s</strong>: %s", e.UserName, e.Message)
 			response.Receiver = e.Receiver
@@ -109,7 +109,7 @@ func (ws *WS) listenToWsChannel() {
 	}
 }
 
-func (ws *WS) sendListUsers() {
+func (ws *WS) SendListUsers() {
 	var response JsonResponse
 	ws.cl.Range(func(key, value interface{}) bool {
 		if login, ok := key.(string); ok {
@@ -165,14 +165,14 @@ func (ws *WS) getListOfUsers(login string) []UserInChat {
 	return onlineUsers
 }
 
-func inArray(needle string, stack []UserInChat) bool {
-	for _, el := range stack {
-		if el.UserLogin == needle {
-			return true
-		}
-	}
-	return false
-}
+//func inArray(needle string, stack []UserInChat) bool {
+//	for _, el := range stack {
+//		if el.UserLogin == needle {
+//			return true
+//		}
+//	}
+//	return false
+//}
 
 func (ws *WS) broadcastToAll(response JsonResponse) {
 	ws.cl.Range(func(key, value interface{}) bool {

@@ -34,6 +34,7 @@ func (s *Service) Register(user User) (User, error) {
 	}
 	common.InfoLogger.Println("New user was added to DB")
 	user.cleanUp()
+
 	return user, nil
 }
 
