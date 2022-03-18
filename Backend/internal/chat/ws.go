@@ -6,7 +6,6 @@ import (
 	"forum/internal/user"
 	"github.com/gorilla/websocket"
 	"log"
-	//"sort"
 	"sync"
 )
 
@@ -60,6 +59,8 @@ func (ws *WS) StartListener(webS *websocket.Conn, userLogin string) error {
 
 func (ws *WS) listenToWs(conn WSConnection, login string) {
 	defer func() {
+		ws.cl.Delete(login)
+		ws.SendListUsers()
 		if r := recover(); r != nil {
 			log.Println("Error", fmt.Sprintf("%v", r))
 		}
@@ -70,7 +71,7 @@ func (ws *WS) listenToWs(conn WSConnection, login string) {
 	for {
 		err := conn.ReadJSON(&payload)
 		if err != nil {
-			fmt.Println("cannot read JSON: ", err)
+			//fmt.Println("cannot read JSON: ", err)
 		} else {
 			payload.Conn = conn
 			payload.UserName = login

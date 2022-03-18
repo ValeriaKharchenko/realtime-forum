@@ -3,14 +3,14 @@ package post
 import "time"
 
 type Post struct {
-	Id         int            `json:"id,omitempty"`
-	UserId     string         `json:"user_id,omitempty"`
-	Content    string         `json:"content,omitempty"`
+	Id         int            `json:"id"`
+	UserId     string         `json:"user_id"`
+	Content    string         `json:"content"`
 	CreatedAt  time.Time      `json:"created_at"`
-	Subject    string         `json:"subject,omitempty"`
+	Subject    string         `json:"subject"`
 	ParentId   int            `json:"parent_id,omitempty"`
-	Categories []int          `json:"categories,omitempty"`
-	Comments   []PostAndMarks `json:"comments,omitempty"`
+	Categories []int          `json:"categories"`
+	Comments   []PostAndMarks `json:"comments"`
 }
 
 type Mark struct {
