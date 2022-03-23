@@ -132,6 +132,7 @@ func (ws *WS) SendListUsers() {
 type UserInChat struct {
 	UserLogin    string `json:"user_login"`
 	OnlineStatus bool   `json:"online_status"`
+	UserId       string `json:"user_id"`
 }
 
 func (ws *WS) getListOfUsers(login string) []UserInChat {
@@ -155,14 +156,15 @@ func (ws *WS) getListOfUsers(login string) []UserInChat {
 	}
 
 	for _, u := range usersFromDB {
-		//if !inArray(u, onlineUsers) {
+		fmt.Println(u)
 		var us UserInChat
-		us.UserLogin = u
+		us.UserLogin = u.Login
+		us.UserId = u.ID
 		_, us.OnlineStatus = ws.cl.Load(u)
 		onlineUsers = append(onlineUsers, us)
 
 	}
-	//fmt.Println("online users: ", onlineUsers)
+	fmt.Println("online users: ", onlineUsers)
 	return onlineUsers
 }
 

@@ -378,11 +378,15 @@ WHERE p.id =$1`
 	if err != nil {
 		return PostAndMarks{}, common.NotFoundError(err, "cannot find post")
 	}
+	//post.Comments, err = s.CommentsByPostId(post)
+	//if err != nil {
+	//	common.ErrorLogger.Println(err)
+	//}
 	return post, nil
 }
 
-func (s *Service) CommentsByPostId(id int) ([]PostAndMarks, error) {
-	comments, err := s.findComments(id)
+func (s *Service) CommentsByPostId(postId int) ([]PostAndMarks, error) {
+	comments, err := s.findComments(postId)
 	if err != nil {
 		return nil, err
 	}
@@ -390,12 +394,12 @@ func (s *Service) CommentsByPostId(id int) ([]PostAndMarks, error) {
 		return nil, nil
 	}
 
-	parent, err := s.FindById(id)
+	parent, err := s.FindById(postId)
 	if err != nil {
 		return nil, err
 	}
 
-	comments = append(comments, parent)
+	//comments = append(comments, parent)
 	m := make(map[int][]PostAndMarks)
 	for _, p := range comments {
 		m[p.ParentId] = append(m[p.ParentId], p)

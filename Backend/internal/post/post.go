@@ -9,7 +9,7 @@ type Post struct {
 	CreatedAt  time.Time      `json:"created_at"`
 	Subject    string         `json:"subject"`
 	ParentId   int            `json:"parent_id,omitempty"`
-	Categories []int          `json:"categories"`
+	Categories []int          `json:"categories,omitempty"`
 	Comments   []PostAndMarks `json:"comments"`
 }
 

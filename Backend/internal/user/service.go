@@ -195,12 +195,12 @@ func (s *Service) FindUser(id string) (User, error) {
 //	return nil
 //}
 
-func (s *Service) FindAllUsers(login string) ([]string, error) {
+func (s *Service) FindAllUsers(login string) ([]User, error) {
 	user, err := s.FindByCredential(login)
 	if err != nil {
 		return nil, err
 	}
-	rows, err := s.db.Query(`select u.login from users u
+	rows, err := s.db.Query(`select u.login, u.id from users u
   left outer join chat c on (u.id = msg_from OR u.id = c.msg_to) AND (c.msg_from=$1 or c.msg_to=$1)
 where u.id <> $1
 group by u.login
@@ -210,15 +210,15 @@ ORDER BY max(c.send_at) DESC, u.login COLLATE NOCASE ASC;`, user.ID)
 	}
 	defer rows.Close()
 
-	var list []string
+	var userList []User
 	for rows.Next() {
-		var s string
-		err := rows.Scan(&s)
+		var us User
+		err := rows.Scan(&us.Login, &us.ID)
 		if err != nil {
 			common.InfoLogger.Println(err)
 			continue
 		}
-		list = append(list, s)
+		userList = append(userList, us)
 	}
-	return list, nil
+	return userList, nil
 }
