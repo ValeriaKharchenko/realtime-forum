@@ -7,6 +7,7 @@ import (
 	"github.com/gorilla/websocket"
 	"log"
 	"sync"
+	"time"
 )
 
 type WS struct {
@@ -40,6 +41,7 @@ type WSPayload struct {
 type JsonResponse struct {
 	Action         string       `json:"action"`
 	Message        string       `json:"message"`
+	NewMessage     Message      `json:"new_message"`
 	Sender         string       `json:"sender"`
 	ConnectedUsers []UserInChat `json:"connected_users"`
 	Receiver       string       `json:"-"`
@@ -100,9 +102,19 @@ func (ws *WS) listenToWsChannel() {
 			}
 			ws.SendListUsers()
 			response.Action = "broadcast"
-			response.Message = e.Message
-			response.Sender = e.UserName
-			response.Receiver = e.Receiver
+
+			var messages Message
+
+			messages.Text = e.Message
+			messages.To = e.Receiver
+			messages.From = e.UserName
+			messages.Data = time.Now()
+
+			response.NewMessage = messages
+
+			//response.Message = e.Message
+			//response.Sender = e.UserName
+			//response.Receiver = e.Receiver
 			if ws.sendOne(response, e.UserName) {
 				common.InfoLogger.Printf("Message sent to: %s\n", e.UserName)
 			} else {
