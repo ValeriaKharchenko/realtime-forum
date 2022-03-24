@@ -53,20 +53,20 @@ func (s *Service) SendMessage(sender, receiver, message string) error {
 }
 
 func (s *Service) GetMessages(sender, receiver string) ([]Message, error) {
-	from, err := s.userService.FindByCredential(sender)
-	if err != nil {
-		return nil, err
-	}
-	to, err := s.userService.FindByCredential(receiver)
-	if err != nil {
-		return nil, err
-	}
+	//from, err := s.userService.FindByCredential(sender)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//to, err := s.userService.FindByCredential(receiver)
+	//if err != nil {
+	//	return nil, err
+	//}
 	rows, err := s.db.Query(`SELECT uf.login, ut.login, c.msg, c.send_at
    									FROM chat as c
     								JOIN users uf ON c.msg_from = uf.id
     								JOIN users ut ON c.msg_to = ut.id
 									WHERE c.msg_from=$1 AND c.msg_to=$2 OR c.msg_from=$2 AND c.msg_to=$1  
-									ORDER BY send_at ASC`, from.ID, to.ID)
+									ORDER BY send_at ASC`, sender, receiver)
 	if err != nil {
 		return nil, err
 	}

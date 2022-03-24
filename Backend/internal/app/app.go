@@ -454,14 +454,14 @@ func (a *App) getMessages(w http.ResponseWriter, r *http.Request) {
 	val, _ := r.Context().Value("user").(userContext)
 
 	//setting values from context
-	senderLogin := val.login
-	receiverLogin := r.URL.Query().Get("with")
-	messages, err := a.chatService.GetMessages(senderLogin, receiverLogin)
+	sender := val.userID
+	receiver := r.URL.Query().Get("with")
+	messages, err := a.chatService.GetMessages(sender, receiver)
 	if err != nil {
 		handleError(w, err)
 		return
 	}
-	common.InfoLogger.Printf("Got %d messages between %s and %s", len(messages), senderLogin, receiverLogin)
+	common.InfoLogger.Printf("Got %d messages between %s and %s", len(messages), sender, receiver)
 
 	if err := json.NewEncoder(w).Encode(messages); err != nil {
 		handleError(w, err)

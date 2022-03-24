@@ -137,17 +137,6 @@ type UserInChat struct {
 
 func (ws *WS) getListOfUsers(login string) []UserInChat {
 	var onlineUsers []UserInChat
-	//ws.cl.Range(func(key, value interface{}) bool {
-	//	if s, ok := key.(string); ok {
-	//		var us UserInChat
-	//		us.UserLogin = s
-	//		us.OnlineStatus = true
-	//		onlineUsers = append(onlineUsers, us)
-	//	}
-	//	return true
-	//})
-	//sort.Sort(StringSlice(onlineUsers)) // сделать приватной
-
 	usersFromDB, err := ws.userService.FindAllUsers(login)
 	if err != nil {
 		fmt.Println(err)

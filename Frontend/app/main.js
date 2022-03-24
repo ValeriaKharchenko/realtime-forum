@@ -30,7 +30,7 @@ export const WS = () => {
                     while (list.firstChild) list.removeChild(list.firstChild);
                     console.log(data)
                     if (data.connected_users.length > 0) {
-                        data.connected_users.forEach(function (item) {
+                        data.connected_users.user_login.forEach(function (item) {
                             console.log(item);
                             let li = document.createElement("li");
                             li.appendChild(document.createTextNode(item));
