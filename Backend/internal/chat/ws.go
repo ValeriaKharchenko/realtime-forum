@@ -40,6 +40,7 @@ type WSPayload struct {
 type JsonResponse struct {
 	Action         string       `json:"action"`
 	Message        string       `json:"message"`
+	Sender         string       `json:"sender"`
 	ConnectedUsers []UserInChat `json:"connected_users"`
 	Receiver       string       `json:"-"`
 }
@@ -99,12 +100,18 @@ func (ws *WS) listenToWsChannel() {
 			}
 			ws.SendListUsers()
 			response.Action = "broadcast"
-			response.Message = fmt.Sprintf("<strong>%s</strong>: %s", e.UserName, e.Message)
+			response.Message = e.Message
+			response.Sender = e.UserName
 			response.Receiver = e.Receiver
-			if ws.sendOne(response, e.UserName) && ws.sendOne(response, e.Receiver) {
-				common.InfoLogger.Println("Personal message sent")
+			if ws.sendOne(response, e.UserName) {
+				common.InfoLogger.Printf("Message sent to: %s\n", e.UserName)
 			} else {
-				common.InfoLogger.Printf("Cannot send a message from %s to %s\n", e.UserName, e.Receiver)
+				common.InfoLogger.Printf("Cannot send a message to %s, no ws connection\n", e.UserName)
+			}
+			if ws.sendOne(response, e.Receiver) {
+				common.InfoLogger.Printf("Message sent to: %s\n", e.Receiver)
+			} else {
+				common.InfoLogger.Printf("Cannot send a message to %s, no ws connection\n", e.Receiver)
 			}
 		}
 	}
@@ -123,10 +130,6 @@ func (ws *WS) SendListUsers() {
 
 		return true
 	})
-	//users := ws.getListOfUsers(login)
-	//response.Action = "list_users"
-	//response.ConnectedUsers = users
-	//ws.broadcastToAll(response)
 }
 
 type UserInChat struct {
@@ -140,31 +143,18 @@ func (ws *WS) getListOfUsers(login string) []UserInChat {
 	usersFromDB, err := ws.userService.FindAllUsers(login)
 	if err != nil {
 		fmt.Println(err)
-		//handleError(w, err)
-		//return nil
 	}
 
 	for _, u := range usersFromDB {
-		fmt.Println(u)
 		var us UserInChat
 		us.UserLogin = u.Login
 		us.UserId = u.ID
-		_, us.OnlineStatus = ws.cl.Load(u)
+		_, us.OnlineStatus = ws.cl.Load(u.Login)
+		fmt.Println("Status: ", us.UserLogin, us.OnlineStatus)
 		onlineUsers = append(onlineUsers, us)
-
 	}
-	fmt.Println("online users: ", onlineUsers)
 	return onlineUsers
 }
-
-//func inArray(needle string, stack []UserInChat) bool {
-//	for _, el := range stack {
-//		if el.UserLogin == needle {
-//			return true
-//		}
-//	}
-//	return false
-//}
 
 func (ws *WS) broadcastToAll(response JsonResponse) {
 	ws.cl.Range(func(key, value interface{}) bool {
