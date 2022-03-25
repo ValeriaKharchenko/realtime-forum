@@ -461,17 +461,32 @@ func (a *App) getMessages(w http.ResponseWriter, r *http.Request) {
 	intSkip, _ := strconv.Atoi(skip)
 	intLimit, _ := strconv.Atoi(limit)
 
-	messages, err := a.chatService.GetMessages(sender, receiver, intSkip, intLimit)
+	countMessages, err := a.chatService.CountMessages(sender, receiver)
+
 	if err != nil {
 		handleError(w, err)
 		return
 	}
-	common.InfoLogger.Printf("Got %d messages between %s and %s", len(messages), sender, receiver)
 
-	if err := json.NewEncoder(w).Encode(messages); err != nil {
-		handleError(w, err)
-		return
+	if countMessages > intSkip {
+		messages, err := a.chatService.GetMessages(sender, receiver, intSkip, intLimit)
+		if err != nil {
+			handleError(w, err)
+			return
+		}
+		common.InfoLogger.Printf("Got %d messages between %s and %s", len(messages), sender, receiver)
+
+		if err := json.NewEncoder(w).Encode(messages); err != nil {
+			handleError(w, err)
+			return
+		}
+	} else {
+		if err := json.NewEncoder(w).Encode("no early history"); err != nil {
+			handleError(w, err)
+			return
+		}
 	}
+
 }
 
 //WS handlers
