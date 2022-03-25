@@ -136,7 +136,6 @@ func (ws *WS) SendListUsers() {
 			users := ws.getListOfUsers(login)
 			response.Action = "list_users"
 			response.ConnectedUsers = users
-			//ws.broadcastToAll(response)
 			ws.sendOne(response, login)
 		}
 
