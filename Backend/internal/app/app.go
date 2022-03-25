@@ -456,7 +456,12 @@ func (a *App) getMessages(w http.ResponseWriter, r *http.Request) {
 	//setting values from context
 	sender := val.userID
 	receiver := r.URL.Query().Get("with")
-	messages, err := a.chatService.GetMessages(sender, receiver)
+	skip := r.URL.Query().Get("skip")
+	limit := r.URL.Query().Get("limit")
+	intSkip, _ := strconv.Atoi(skip)
+	intLimit, _ := strconv.Atoi(limit)
+
+	messages, err := a.chatService.GetMessages(sender, receiver, intSkip, intLimit)
 	if err != nil {
 		handleError(w, err)
 		return
