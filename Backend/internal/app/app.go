@@ -264,7 +264,6 @@ func (a *App) allPosts(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	common.InfoLogger.Println("Get All Posts")
-
 	if err := json.NewEncoder(w).Encode(allPosts); err != nil {
 		handleError(w, err)
 		return
@@ -280,21 +279,25 @@ func (a *App) addMark(w http.ResponseWriter, r *http.Request) {
 		handleError(w, err)
 		return
 	}
+	u, _ := r.Context().Value("user").(userContext)
 
-	m, err := a.postService.AddMark(markFromJson)
+	markFromJson.UserId = u.userID
+	var markSum struct {
+		Likes    int `json:"likes"`
+		Dislikes int `json:"dislikes"`
+	}
+
+	markSum.Likes, markSum.Dislikes, err = a.postService.AddMark(markFromJson)
 	if err != nil {
 		handleError(w, err)
 		return
-	}
-	if m == nil {
-		w.WriteHeader(http.StatusNoContent)
-		common.InfoLogger.Println("Mark deleted")
 	} else {
-		w.WriteHeader(http.StatusOK)
-		common.InfoLogger.Println("Mark added")
+		common.InfoLogger.Println("Mark changed")
 	}
-
-	return
+	if err := json.NewEncoder(w).Encode(markSum); err != nil {
+		handleError(w, err)
+		return
+	}
 }
 
 func (a *App) findByCategory(w http.ResponseWriter, r *http.Request) {

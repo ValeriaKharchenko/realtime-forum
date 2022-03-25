@@ -71,14 +71,6 @@ ORDER BY send_at asc `, sender, receiver)
 }
 
 func (s *Service) GetMessages(sender, receiver string, skip, limit int) ([]Message, error) {
-	//from, err := s.userService.FindByCredential(sender)
-	//if err != nil {
-	//	return nil, err
-	//}
-	//to, err := s.userService.FindByCredential(receiver)
-	//if err != nil {
-	//	return nil, err
-	//}
 	rows, err := s.db.Query(`SELECT * FROM (
                   SELECT uf.login, ut.login, c.msg, c.send_at
                   FROM chat as c

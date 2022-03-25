@@ -133,10 +133,10 @@ group by p.id`)
 	return posts, nil
 }
 
-func (s *Service) AddMark(m Mark) (*Mark, error) {
+func (s *Service) AddMark(m Mark) (int, int, error) {
 	mk, err := s.getMark(m)
 	if err != nil {
-		return nil, common.SystemError(err)
+		return 0, 0, common.SystemError(err)
 	}
 
 	switch {
@@ -144,17 +144,19 @@ func (s *Service) AddMark(m Mark) (*Mark, error) {
 		err = s.addMark(m)
 	case *mk == m.Mark:
 		err = s.deleteMark(m)
-		if err == nil {
-			return nil, nil
-		}
 	case *mk != m.Mark:
 		err = s.updateMark(m)
 	}
 
 	if err != nil {
-		return nil, common.SystemError(err)
+		return 0, 0, common.SystemError(err)
 	}
-	return &m, nil
+	likes, dislikes, err := s.getSumMark(m.PostId)
+	if err != nil {
+		fmt.Println(err)
+		return 0, 0, err
+	}
+	return likes, dislikes, nil
 }
 
 func (s *Service) getMark(m Mark) (*bool, error) {
@@ -192,6 +194,18 @@ func (s *Service) deleteMark(m Mark) error {
 		return err
 	}
 	return nil
+}
+
+func (s *Service) getSumMark(postId int) (int, int, error) {
+	row := s.db.QueryRow(`select sum(case when not mark then 1 else 0 end) AS dislike, 
+       sum(case when mark then 1 else 0 end) AS like FROM likes_dislikes  where post_id=$1`, postId)
+	var likes, dislikes int
+	err := row.Scan(&dislikes, &likes)
+	if err != nil {
+		common.InfoLogger.Println("Can't scan", err)
+		return 0, 0, nil
+	}
+	return likes, dislikes, nil
 }
 
 func (s *Service) FindByCategory(catID int) ([]PostAndMarks, error) {
