@@ -471,23 +471,21 @@ func (a *App) getMessages(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if countMessages > intSkip {
-		messages, err := a.chatService.GetMessages(sender, receiver, intSkip, intLimit)
-		if err != nil {
-			handleError(w, err)
-			return
-		}
-		common.InfoLogger.Printf("Got %d messages between %s and %s", len(messages), sender, receiver)
+	messages, err := a.chatService.GetMessages(sender, receiver, intSkip, intLimit)
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+	common.InfoLogger.Printf("Got %d messages between %s and %s", len(messages), sender, receiver)
 
-		if err := json.NewEncoder(w).Encode(messages); err != nil {
-			handleError(w, err)
-			return
-		}
-	} else {
-		if err := json.NewEncoder(w).Encode("no early history"); err != nil {
-			handleError(w, err)
-			return
-		}
+	type res struct {
+		Messages []chat.Message `json:"messages"`
+		Count    int            `json:"count"`
+	}
+
+	if err := json.NewEncoder(w).Encode(res{messages, countMessages}); err != nil {
+		handleError(w, err)
+		return
 	}
 
 }

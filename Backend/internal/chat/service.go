@@ -57,8 +57,8 @@ func (s *Service) CountMessages(sender, receiver string) (int, error) {
 FROM chat as c
          JOIN users uf ON c.msg_from = uf.id
          JOIN users ut ON c.msg_to = ut.id
-WHERE c.msg_from = '8b377aa5-0481-4b18-ae88-26a11c53c242' AND c.msg_to = '6d8383a0-6d4b-4331-b70c-530a73c1c573'
-   OR c.msg_from = '6d8383a0-6d4b-4331-b70c-530a73c1c573' AND c.msg_to = '8b377aa5-0481-4b18-ae88-26a11c53c242'
+WHERE c.msg_from = $sender AND c.msg_to = $receiver
+   OR c.msg_from = $receiver AND c.msg_to = $sender
 ORDER BY send_at asc `, sender, receiver)
 
 	var nOfMessages int
