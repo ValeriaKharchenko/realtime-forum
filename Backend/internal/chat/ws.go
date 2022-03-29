@@ -15,6 +15,7 @@ type WS struct {
 	wsChan      chan WSPayload
 	userService *user.Service
 	chatService *Service
+	mu          sync.Mutex
 }
 
 func NewWS(uService *user.Service, cS *Service) *WS {
@@ -175,6 +176,8 @@ func (ws *WS) broadcastToAll(response JsonResponse) {
 }
 
 func (ws *WS) sendOne(response JsonResponse, sendTo string) bool {
+	ws.mu.Lock()
+	defer ws.mu.Unlock()
 	if conn, ok := ws.cl.Load(sendTo); ok {
 		c := conn.(WSConnection)
 		if err := c.WriteJSON(response); err != nil {
